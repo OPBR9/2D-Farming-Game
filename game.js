@@ -1,100 +1,82 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-canvas.width = 800;
-canvas.height = 600;
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.136/build/three.module.js';
 
-const GRID_SIZE = 32;
-const ROWS = canvas.height / GRID_SIZE;
-const COLS = canvas.width / GRID_SIZE;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const light = new THREE.AmbientLight(0xffffff, 1);
+scene.add(light);
+
+const groundGeometry = new THREE.PlaneGeometry(20, 20);
+const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
+const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+const player = new THREE.Mesh(playerGeometry, playerMaterial);
+player.position.set(0, 1, 0);
+scene.add(player);
+
+const crops = [];
+const cropTypes = {
+    wheat: { color: 0xffd700 },
+    corn: { color: 0xffff00 },
+    carrot: { color: 0xff8c00 }
+};
+
+function plantCrop(type, x, z) {
+    const cropGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1, 8);
+    const cropMaterial = new THREE.MeshStandardMaterial({ color: cropTypes[type].color });
+    const crop = new THREE.Mesh(cropGeometry, cropMaterial);
+    crop.position.set(x, 0.5, z);
+    scene.add(crop);
+    crops.push({ mesh: crop, type, stage: 0 });
+}
+
 let money = 100;
-const SEED_TYPES = {
-    wheat: { cost: 5, sellPrice: 15, color: "gold" },
-    corn: { cost: 7, sellPrice: 20, color: "yellow" },
-    carrot: { cost: 10, sellPrice: 25, color: "orange" }
-};
-let seeds = { wheat: 0, corn: 0, carrot: 0 };
-
-let soil = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-let crops = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
-let growthStage = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-
-const player = {
-    x: 5,
-    y: 5,
-    speed: 1,
-    frame: 0
-};
-
-const inventory = { wheat: 0, corn: 0, carrot: 0 };
+const seeds = { wheat: 0, corn: 0, carrot: 0 };
 
 function buySeed(type) {
-    if (money >= SEED_TYPES[type].cost) {
-        money -= SEED_TYPES[type].cost;
+    if (money >= 5) {
+        money -= 5;
         seeds[type]++;
+        console.log(`${type} seed bought!`);
     }
 }
 
-function movePlayer(dx, dy) {
-    const newX = player.x + dx;
-    const newY = player.y + dy;
-    if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS) {
-        player.x = newX;
-        player.y = newY;
-        player.frame = (player.frame + 1) % 2;
+document.addEventListener("click", (event) => {
+    const x = Math.floor(player.position.x);
+    const z = Math.floor(player.position.z);
+    if (seeds.wheat > 0) {
+        plantCrop("wheat", x, z);
+        seeds.wheat--;
     }
-}
-
-document.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowUp") movePlayer(0, -1);
-    if (event.key === "ArrowDown") movePlayer(0, 1);
-    if (event.key === "ArrowLeft") movePlayer(-1, 0);
-    if (event.key === "ArrowRight") movePlayer(1, 0);
 });
 
-function growCrops() {
-    for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-            if (crops[row][col] && growthStage[row][col] < 3) {
-                growthStage[row][col]++;
-            }
-        }
-    }
+camera.position.set(0, 5, 10);
+camera.lookAt(player.position);
+
+const keys = {};
+document.addEventListener("keydown", (event) => keys[event.key] = true);
+document.addEventListener("keyup", (event) => keys[event.key] = false);
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    if (keys["ArrowUp"]) player.position.z -= 0.1;
+    if (keys["ArrowDown"]) player.position.z += 0.1;
+    if (keys["ArrowLeft"]) player.position.x -= 0.1;
+    if (keys["ArrowRight"]) player.position.x += 0.1;
+    
+    camera.position.x = player.position.x;
+    camera.position.z = player.position.z + 10;
+    camera.lookAt(player.position);
+    
+    renderer.render(scene, camera);
 }
 
-setInterval(growCrops, 3000);
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-            ctx.strokeStyle = "black";
-            ctx.strokeRect(col * GRID_SIZE, row * GRID_SIZE, GRID_SIZE, GRID_SIZE);
-
-            if (soil[row][col]) {
-                ctx.fillStyle = "brown";
-                ctx.fillRect(col * GRID_SIZE, row * GRID_SIZE, GRID_SIZE, GRID_SIZE);
-            }
-
-            if (crops[row][col]) {
-                let color = SEED_TYPES[crops[row][col]].color;
-                let alpha = growthStage[row][col] / 3;
-                ctx.fillStyle = `rgba(${color === "gold" ? "255, 215, 0" : color === "yellow" ? "255, 255, 0" : "255, 140, 0"}, ${alpha})`;
-                ctx.fillRect(col * GRID_SIZE, row * GRID_SIZE, GRID_SIZE, GRID_SIZE);
-            }
-        }
-    }
-
-    ctx.fillStyle = player.frame === 0 ? "blue" : "lightblue";
-    ctx.fillRect(player.x * GRID_SIZE, player.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
-
-    ctx.fillStyle = "black";
-    ctx.font = "20px Arial";
-    ctx.fillText(`Money: $${money}`, 10, 20);
-    ctx.fillText(`Wheat Seeds: ${seeds.wheat} | Corn Seeds: ${seeds.corn} | Carrot Seeds: ${seeds.carrot}`, 10, 50);
-    ctx.fillText(`Inventory: Wheat ${inventory.wheat}, Corn ${inventory.corn}, Carrot ${inventory.carrot}`, 10, 80);
-
-    requestAnimationFrame(draw);
-}
-
-draw();
+animate();
