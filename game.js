@@ -18,6 +18,12 @@ let soil = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 let crops = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 let growthStage = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 
+const player = {
+    x: 5,
+    y: 5,
+    speed: 1
+};
+
 function buySeed(type) {
     if (money >= SEED_TYPES[type].cost) {
         money -= SEED_TYPES[type].cost;
@@ -25,33 +31,21 @@ function buySeed(type) {
     }
 }
 
-canvas.addEventListener("mousedown", (event) => {
-    const rect = canvas.getBoundingClientRect();
-    const col = Math.floor((event.clientX - rect.left) / GRID_SIZE);
-    const row = Math.floor((event.clientY - rect.top) / GRID_SIZE);
-
-    if (event.button === 0) { // Left Click: Plant
-        for (let type in seeds) {
-            if (seeds[type] > 0 && soil[row] && soil[row][col] && !crops[row][col]) {
-                crops[row][col] = type;
-                seeds[type]--;
-                growthStage[row][col] = 1;
-                break;
-            }
-        }
-    } else if (event.button === 2) { // Right Click: Prepare soil
-        event.preventDefault();
-        if (soil[row]) soil[row][col] = true;
-    } else if (event.button === 1) { // Middle Click: Harvest
-        if (crops[row] && crops[row][col] && growthStage[row][col] === 3) {
-            money += SEED_TYPES[crops[row][col]].sellPrice;
-            crops[row][col] = null;
-            growthStage[row][col] = 0;
-        }
+function movePlayer(dx, dy) {
+    const newX = player.x + dx;
+    const newY = player.y + dy;
+    if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS) {
+        player.x = newX;
+        player.y = newY;
     }
-});
+}
 
-document.addEventListener("contextmenu", (event) => event.preventDefault());
+document.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowUp") movePlayer(0, -1);
+    if (event.key === "ArrowDown") movePlayer(0, 1);
+    if (event.key === "ArrowLeft") movePlayer(-1, 0);
+    if (event.key === "ArrowRight") movePlayer(1, 0);
+});
 
 function growCrops() {
     for (let row = 0; row < ROWS; row++) {
@@ -86,6 +80,9 @@ function draw() {
             }
         }
     }
+
+    ctx.fillStyle = "blue";
+    ctx.fillRect(player.x * GRID_SIZE, player.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
 
     ctx.fillStyle = "black";
     ctx.font = "20px Arial";
