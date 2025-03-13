@@ -21,8 +21,11 @@ let growthStage = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 const player = {
     x: 5,
     y: 5,
-    speed: 1
+    speed: 1,
+    frame: 0
 };
+
+const inventory = { wheat: 0, corn: 0, carrot: 0 };
 
 function buySeed(type) {
     if (money >= SEED_TYPES[type].cost) {
@@ -37,6 +40,7 @@ function movePlayer(dx, dy) {
     if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS) {
         player.x = newX;
         player.y = newY;
+        player.frame = (player.frame + 1) % 2;
     }
 }
 
@@ -81,13 +85,14 @@ function draw() {
         }
     }
 
-    ctx.fillStyle = "blue";
+    ctx.fillStyle = player.frame === 0 ? "blue" : "lightblue";
     ctx.fillRect(player.x * GRID_SIZE, player.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
 
     ctx.fillStyle = "black";
     ctx.font = "20px Arial";
     ctx.fillText(`Money: $${money}`, 10, 20);
     ctx.fillText(`Wheat Seeds: ${seeds.wheat} | Corn Seeds: ${seeds.corn} | Carrot Seeds: ${seeds.carrot}`, 10, 50);
+    ctx.fillText(`Inventory: Wheat ${inventory.wheat}, Corn ${inventory.corn}, Carrot ${inventory.carrot}`, 10, 80);
 
     requestAnimationFrame(draw);
 }
