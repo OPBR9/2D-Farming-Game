@@ -9,18 +9,33 @@ const COLS = canvas.width / GRID_SIZE;
 let money = 100;
 const SEED_COST = 5;
 const SELL_PRICE = 10;
+let seedCount = 0;
 
 let soil = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 let crops = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+
+const shopButton = document.createElement("button");
+shopButton.innerText = "Buy Seed ($5)";
+shopButton.style.position = "absolute";
+shopButton.style.top = "10px";
+shopButton.style.right = "10px";
+document.body.appendChild(shopButton);
+
+shopButton.addEventListener("click", () => {
+    if (money >= SEED_COST) {
+        money -= SEED_COST;
+        seedCount++;
+    }
+});
 
 canvas.addEventListener("click", (event) => {
     const col = Math.floor(event.offsetX / GRID_SIZE);
     const row = Math.floor(event.offsetY / GRID_SIZE);
 
     if (event.button === 0) { // Left Click: Plant
-        if (soil[row][col] && !crops[row][col] && money >= SEED_COST) {
+        if (soil[row][col] && !crops[row][col] && seedCount > 0) {
             crops[row][col] = true;
-            money -= SEED_COST;
+            seedCount--;
         }
     }
 });
@@ -66,6 +81,7 @@ function draw() {
     ctx.fillStyle = "black";
     ctx.font = "20px Arial";
     ctx.fillText(`Money: $${money}`, 10, 20);
+    ctx.fillText(`Seeds: ${seedCount}`, 10, 50);
 
     requestAnimationFrame(draw);
 }
