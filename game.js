@@ -9,11 +9,12 @@ const COLS = canvas.width / GRID_SIZE;
 let money = 100;
 const SEED_COST = 5;
 const SELL_PRICE = 10;
-let seedCount = 0;
+let seedCount = 5;
 
 let soil = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 let crops = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 
+// Create shop button
 const shopButton = document.createElement("button");
 shopButton.innerText = "Buy Seed ($5)";
 shopButton.style.position = "absolute";
@@ -28,35 +29,28 @@ shopButton.addEventListener("click", () => {
     }
 });
 
-canvas.addEventListener("click", (event) => {
-    const col = Math.floor(event.offsetX / GRID_SIZE);
-    const row = Math.floor(event.offsetY / GRID_SIZE);
+canvas.addEventListener("mousedown", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const col = Math.floor((event.clientX - rect.left) / GRID_SIZE);
+    const row = Math.floor((event.clientY - rect.top) / GRID_SIZE);
 
     if (event.button === 0) { // Left Click: Plant
-        if (soil[row][col] && !crops[row][col] && seedCount > 0) {
+        if (soil[row] && soil[row][col] && !crops[row][col] && seedCount > 0) {
             crops[row][col] = true;
             seedCount--;
         }
-    }
-});
-
-canvas.addEventListener("contextmenu", (event) => {
-    event.preventDefault();
-    const col = Math.floor(event.offsetX / GRID_SIZE);
-    const row = Math.floor(event.offsetY / GRID_SIZE);
-    soil[row][col] = true;
-});
-
-canvas.addEventListener("auxclick", (event) => {
-    if (event.button === 1) { // Middle Click: Harvest
-        const col = Math.floor(event.offsetX / GRID_SIZE);
-        const row = Math.floor(event.offsetY / GRID_SIZE);
-        if (crops[row][col]) {
+    } else if (event.button === 2) { // Right Click: Prepare soil
+        event.preventDefault();
+        if (soil[row]) soil[row][col] = true;
+    } else if (event.button === 1) { // Middle Click: Harvest
+        if (crops[row] && crops[row][col]) {
             crops[row][col] = false;
             money += SELL_PRICE;
         }
     }
 });
+
+document.addEventListener("contextmenu", (event) => event.preventDefault());
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
